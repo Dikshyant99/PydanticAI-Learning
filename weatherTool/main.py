@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from pydantic_ai import Agent,ModelRetry,RunContext
 from pydantic import BaseModel,Field
 from pydantic_ai.messages import ToolCallPart
+from cost import print_usage_report
+
 
 load_dotenv()
 
@@ -94,6 +96,6 @@ for message in result.all_messages():
         if isinstance(part, ToolCallPart):
             print(f'-> {part.tool_name}({part.args})')
 
-print(f'\nUsage: {result.usage()}')
+print_usage_report(result)
     
     
