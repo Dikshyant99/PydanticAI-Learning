@@ -42,4 +42,4 @@ for i, task in enumerate(assignment.tasks, start=1):
     print(f'  {i}. {task}')
 
 days_left = (assignment.due_date - date.today()).days
-print(f'\nDays left: {days_left}')
+print(f'\nDays left: {days_left}') 
