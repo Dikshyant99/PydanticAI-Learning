@@ -80,6 +80,34 @@ def mark_done(ctx:RunContext[StudyDeps], title :str)->str:
             return f"Marked'a.{title}' as done"
     return f"No assignment called '{title}'. Check the list for the exact title."
 
+#The chat loop
+def main()-> None:
+    name=input("Whats your name?")
+    deps= StudyDeps(student_name=name) # One backpack created once before the loop
+    history=[] # Conversation memory (step1)
+    
+    print(f"HI,{name}! iam study buddy is ready.Type Quit to exit.\n")
+    
+    while True:
+        user_input=input("YOU: ")
+        if user_input.lower()=='quit':
+            print("Study Buddy: BYE! GOODLUCK WITH YOUR WORK")
+            
+            break
+        result=agent.run_sync(user_input,deps=deps,message_history=history)
+        history=result.all_messages()
+        print(f"Study Buddy:{result.output}\n")
+        
+        #Print (deps.assignments)
+        
+    if __name__=='main':
+        main()
+    
+        
+        
+    
+    
+
         
     
     
