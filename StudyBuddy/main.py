@@ -1,8 +1,9 @@
 from dataclasses import dataclass , field
 from pydantic_ai import Agent,RunContext
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from datetime import date
+from pathlib import Path
 
 
 
@@ -21,8 +22,26 @@ class  Assignment(BaseModel):
 @dataclass
 
 class StudyDeps:
-    student_name=str
+    student_name: str
     assignments: list[Assignment] = field(default_factory=list)
+
+
+#Saving to a file so assignments survive after you quit.
+#The file sits next to main.py, whatever folder you run the script from.
+DATA_FILE = Path(__file__).parent / 'assignments.json'
+
+#A TypeAdapter lets Pydantic convert a whole list[Assignment] to JSON and back.
+assignment_list = TypeAdapter(list[Assignment])
+
+def load_assignments() -> list[Assignment]:
+    "Read saved assignments from the file (an empty list if there is no file yet)."
+    if not DATA_FILE.exists():
+        return []
+    return assignment_list.validate_json(DATA_FILE.read_bytes())
+
+def save_assignments(assignments: list[Assignment]) -> None:
+    "Write all assignments to the file, replacing what was there."
+    DATA_FILE.write_bytes(assignment_list.dump_json(assignments, indent=2))
     
     
     
@@ -54,6 +73,7 @@ def add_assignment(ctx:RunContext[StudyDeps],title:str,subject:str,due_date:date
     "Add a new assignment to the students list"
     new=Assignment(title=title,subject=subject,due_date=due_date)
     ctx.deps.assignments.append(new)
+    save_assignments(ctx.deps.assignments)
     return f"added '{title}',({subject}),{due_date}."
 
 @agent.tool
@@ -77,16 +97,18 @@ def mark_done(ctx:RunContext[StudyDeps], title :str)->str:
     for a in ctx.deps.assignments:
         if a.title.lower()==title.lower():
             a.done = True
-            return f"Marked'a.{title}' as done"
+            save_assignments(ctx.deps.assignments)
+            return f"Marked '{a.title}' as done"
     return f"No assignment called '{title}'. Check the list for the exact title."
 
 #The chat loop
 def main()-> None:
     name=input("Whats your name?")
-    deps= StudyDeps(student_name=name) # One backpack created once before the loop
+    deps= StudyDeps(student_name=name, assignments=load_assignments()) # One backpack, filled from the saved file
     history=[] # Conversation memory (step1)
     
-    print(f"HI,{name}! iam study buddy is ready.Type Quit to exit.\n")
+    print(f"HI,{name}! iam study buddy is ready.Type Quit to exit.")
+    print(f"(Loaded {len(deps.assignments)} saved assignment(s).)\n")
     
     while True:
         user_input=input("YOU: ")
@@ -100,8 +122,9 @@ def main()-> None:
         
         #Print (deps.assignments)
         
-    if __name__=='main':
-        main()
+
+if __name__=='__main__':
+    main()
     
         
         
