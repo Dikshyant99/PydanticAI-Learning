@@ -57,6 +57,21 @@ def add_assignment(ctx:RunContext[StudyDeps],title:str,subject:str,due_date:date
     return f"added '{title}',({subject}),{due_date}."
 
 @agent.tool
+def list_assignment(ctx:RunContext[StudyDeps])->list[dict] |str:
+    """List all of the student's assignments with due date, days left and status."""
+    if not ctx.deps.assignments:
+        return 'the student has no assignments'
+    today=date.today()
+    return[{
+        'title': a.title,
+            'subject': a.subject,
+            'due_date': a.due_date.isoformat(),
+            'days_left': (a.due_date - today).days,  # code does the maths, not the model
+            'done': a.done,
+    }
+           for a in ctx.deps.assignments
+           ]
+    
 
 
     
