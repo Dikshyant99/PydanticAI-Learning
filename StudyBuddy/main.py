@@ -71,6 +71,17 @@ def list_assignment(ctx:RunContext[StudyDeps])->list[dict] |str:
     }
            for a in ctx.deps.assignments
            ]
+@agent.tool
+def mark_done(ctx:RunContext[StudyDeps], title :str)->str:
+    "Mark the assignment as done, use the assignments title"
+    for a in ctx.deps.assignments:
+        if a.title.lower()==title.lower():
+            a.done = True
+            return f"Marked'a.{title}' as done"
+    return f"No assignment called '{title}'. Check the list for the exact title."
+
+        
+    
     
 
 
