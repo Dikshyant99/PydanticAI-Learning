@@ -1,36 +1,65 @@
-from dataclasses import dataclass
-from pydantic_ai import Agent
+from dataclasses import dataclass , field
+from pydantic_ai import Agent,RunContext
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from datetime import date
+
 
 
 load_dotenv()
+#What one assignment looks like
+class  Assignment(BaseModel):
+    title: str
+    subject:str
+    due_date: date
+    done:bool=False # Every new assignment starts as not done
 
-#Creating the agent
-agent=Agent (
+#The dependencies that are handed to the agent on every run.
+#field(default_factory=list) gives each backpack its OWN empty list.
+#(A plain "= []" would share one list between all backpacks.)
+
+@dataclass
+
+class StudyDeps:
+    student_name=str
+    assignments: list[Assignment] = field(default_factory=list)
+    
+    
+    
+    
+
+#Creating the agent, the deps_type tells the agent which deps_type to expect
+agent = Agent(
     'anthropic:claude-haiku-5-5',
-    instructions=('Yoy are Study Buddy, a friendly assistant that helps the students'
-                  'manages their assignments. Keep the replies short and encouraging'),
+    deps_type=StudyDeps,
+    instructions=(
+        'You are Study Buddy, a friendly assistant that helps students '
+        'manage their assignments. Keep replies short and encouraging. '
+        'Always use the tools to add, list or complete assignments. '
+        'Never make up assignments that are not in the list.'
+    ),
 )
-result=agent.run_sync("Hi my name is Dikshyant!")
-print(result.output)
-print("Study Buddy is  ready! Type 'quit' to exit.\n")
 
-history=[]
+#Dynamic instructions: This runs on every turn, so the date is always fresh and it can acces the backpack(ctx.deps)
+@agent.instructions
+def add_student_context(ctx:RunContext[StudyDeps])->str:
+    today=date.today()
+    return f"you are helping {ctx.deps.student_name}.Today is {today:%A},{today}"
+
+#Tools @agent.tool as they need ctx
+#the model never sees the ctx they see other arguments
+
+@agent.tool
+def add_assignment(ctx:RunContext[StudyDeps],title:str,subject:str,due_date:date)->str:
+    "Add a new assignment to the students list"
+    new=Assignment(title=title,subject=subject,due_date=due_date)
+    ctx.deps.assignments.append(new)
+    return f"added '{title}',({subject}),{due_date}."
+
+@agent.tool
 
 
-while True:
-    user_input=input('You:')
+    
 
-    if user_input.lower()=='quit':
-        print("Study Buddy: Bye! GoodLuck with you work.")
-        break
-    
-    result=agent.run_sync(user_input,message_history=history)
-    history=result.all_messages()
-    
-    print(f'study Buddy:{result.output}')
-    
-    
-    
-    
- 
+
+
