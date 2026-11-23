@@ -41,8 +41,8 @@ Sends the result back to the website
 - Admin only: manage users, venues, shop, events
 
 ## Main Workflows
-1. **Sign up** → verify phone with an SMS code → verify email
-2. **Login** → get a token (valid for 24 hours)
-3. **Buy membership** → pay with Stripe → membership becomes active
-4. **Join a game** → pay with Stripe or account credit → booking confirmed
+1. **Sign up** : verify phone with an SMS code → verify email
+2. **Login** : get a token (valid for 24 hours)
+3. **Buy membership** : pay with Stripe → membership becomes active
+4. **Join a game** : pay with Stripe or account credit → booking confirmed
 
