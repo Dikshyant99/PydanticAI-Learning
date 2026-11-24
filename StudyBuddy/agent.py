@@ -84,5 +84,14 @@ def mark_done(ctx: RunContext[StudyDeps], title: str) -> str:
     save_assignments(ctx.deps.assignments)
     return f"Marked '{a.title}' as done."
 
+@agent.tool
+def delete_assignment(ctx: RunContext[StudyDeps], title: str) -> str:
+    "Delete an assignment from the list, use the assignment's title."
+    a = find_assignment(ctx.deps.assignments, title)
+    if a is None:
+        return f"No assignment called '{title}'. Check the list for the exact title."
+    ctx.deps.assignments.remove(a)
+    save_assignments(ctx.deps.assignments)
+    return f"Deleted '{a.title}'."
 
 
