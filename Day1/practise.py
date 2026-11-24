@@ -73,7 +73,7 @@ assiggment=[("english","Nepali"),("Physics","Chemistry")]
 print(assiggment)
 print(assiggment[1][0])
 '''
-
+'''
 # Dictionary
 assignment={
     "title":"essay","Subject":"English","done":False
@@ -82,10 +82,45 @@ assignment["title"]
 print(assignment)
 print(assignment["Subject"])  
 
+assignment["due"]="2026-01-10"
+assignment["done"]=True
+print(assignment)
 
+remove= assignment.pop("Subject")
+print(assignment)
 
+print(assignment,"removed:",remove)
 
+print(assignment.keys())
+print(assignment.values())
+print(assignment.items())
 
+#Nested data
+student={
+    "name":"Dikshyant",
+    "subject":["Maths","Physics"],
+    "assignment":[
+        
+        {"Title":"ESSAY","done":"False"},
+        {"Title":"Lab Report","done":True},
+        
+    ],
+    
+}
+print(student["subject"])
+print(len(student["name"]))
+'''
+#Sets
+tags=["urgent","maths","maths"]
+print(set(tags))
+
+mine={"maths","English"}
+friend={"Physics","English"}
+
+print(mine|friend)
+print(mine&friend)
+
+print(type({}), type(set()))
 
 
 
