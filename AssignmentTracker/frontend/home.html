@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My assignments · Assignment Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="api.js"></script>
+  <script>requireLogin();</script>
+</head>
+<body>
+  <header class="topbar">
+    <strong>Assignment Tracker</strong>
+    <div class="topbar-right">
+      <span id="greeting"></span>
+      <button id="logout" class="btn">Log out</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <p id="message" class="message" hidden role="alert"></p>
+
+    <!-- Add form -->
+    <section class="panel">
+      <h2>Add an assignment</h2>
+      <form id="add-form" class="grid-form">
+        <label>Title
+          <input name="title" required maxlength="200">
+        </label>
+        <label>Subject
+          <input name="subject" required maxlength="100">
+        </label>
+        <label>Due date
+          <input name="due_date" type="date" required>
+        </label>
+        <label class="wide">Notes <small>(optional)</small>
+          <input name="notes">
+        </label>
+        <button type="submit" class="btn primary">Add</button>
+      </form>
+    </section>
+
+    <!-- List -->
+    <section class="panel">
+      <div class="list-header">
+        <h2>My assignments</h2>
+        <div id="filters" class="filters">
+          <button class="btn filter active" data-filter="all">All</button>
+          <button class="btn filter" data-filter="pending">Pending</button>
+          <button class="btn filter" data-filter="in_progress">In progress</button>
+          <button class="btn filter" data-filter="done">Done</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Title</th><th>Subject</th><th>Due</th><th>Status</th><th>Notes</th><th></th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p id="empty" class="empty" hidden></p>
+    </section>
+  </main>
+
+  <!-- Edit modal (native <dialog> element) -->
+  <dialog id="edit-dialog">
+    <form id="edit-form">
+      <h2>Edit assignment</h2>
+      <label>Title <input name="title" required maxlength="200"></label>
+      <label>Subject <input name="subject" required maxlength="100"></label>
+      <label>Due date <input name="due_date" type="date" required></label>
+      <label>Notes <textarea name="notes" rows="3"></textarea></label>
+      <p id="edit-message" class="message" hidden role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" id="edit-cancel" class="btn">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const STATUS_LABELS = { pending: "Pending", in_progress: "In progress", done: "Done" };
+
+    // ---------- State ----------
+    let assignments = [];   // what the server gave us
+    let currentFilter = "all";
+    let editingId = null;   // id of the assignment open in the edit dialog
+
+    const message = document.getElementById("message");
+    const rows = document.getElementById("rows");
+    const empty = document.getElementById("empty");
+    const addForm = document.getElementById("add-form");
+    const editDialog = document.getElementById("edit-dialog");
+    const editForm = document.getElementById("edit-form");
+    const editMessage = document.getElementById("edit-message");
+
+    // ---------- Date helpers ----------
+    // Today's date as "YYYY-MM-DD" in *local* time, so it compares directly with due_date.
+    function todayString() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    // "2026-12-01" -> "1 Dec 2026". (new Date("2026-12-01") would be UTC midnight
+    // and can show the previous day in some timezones, so build it from parts.)
+    function formatDate(isoDate) {
+      const [y, m, d] = isoDate.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+        day: "numeric", month: "short", year: "numeric",
+      });
+    }
+
+    function sortByDueDate() {
+      assignments.sort((a, b) => a.due_date.localeCompare(b.due_date));
+    }
+
+    // ---------- Rendering ----------
+    // Builds every row with createElement + textContent. Never innerHTML with user
+    // data: a title like <img onerror=...> would otherwise run as code.
+    function render() {
+      const visible = currentFilter === "all"
+        ? assignments
+        : assignments.filter((a) => a.status === currentFilter);
+
+      rows.replaceChildren(); // clear the table
+      const today = todayString();
+
+      for (const a of visible) {
+        const tr = document.createElement("tr");
+        if (a.status === "done") tr.classList.add("is-done");
+        else if (a.due_date < today) tr.classList.add("is-overdue");
+
+        addCell(tr, a.title, "title");
+        addCell(tr, a.subject);
+
+        const dueCell = addCell(tr, formatDate(a.due_date));
+        if (tr.classList.contains("is-overdue")) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = "Overdue";
+          dueCell.append(" ", badge);
+        }
+
+        // Status dropdown
+        const statusCell = document.createElement("td");
+        const select = document.createElement("select");
+        select.setAttribute("aria-label", "Status");
+        for (const [value, label] of Object.entries(STATUS_LABELS)) {
+          select.add(new Option(label, value, false, value === a.status));
+        }
+        select.addEventListener("change", () => changeStatus(a, select));
+        statusCell.append(select);
+        tr.append(statusCell);
+
+        addCell(tr, a.notes || "—", "notes");
+
+        // Actions
+        const actions = document.createElement("td");
+        actions.className = "actions";
+        actions.append(
+          makeButton("Edit", "btn small", () => openEdit(a)),
+          makeButton("Delete", "btn small danger", () => deleteAssignment(a)),
+        );
+        tr.append(actions);
+
+        rows.append(tr);
+      }
+
+      // Empty state
+      if (visible.length === 0) {
+        empty.textContent = assignments.length === 0
+          ? "No assignments yet. Add your first one above."
+          : `No ${STATUS_LABELS[currentFilter].toLowerCase()} assignments.`;
+      }
+      empty.hidden = visible.length > 0;
+      rows.closest("table").hidden = visible.length === 0;
+
+      // Show counts on the filter buttons, e.g. "Pending (2)"
+      for (const btn of document.querySelectorAll(".filter")) {
+        const f = btn.dataset.filter;
+        const count = f === "all" ? assignments.length
+          : assignments.filter((a) => a.status === f).length;
+        btn.textContent = `${f === "all" ? "All" : STATUS_LABELS[f]} (${count})`;
+      }
+    }
+
+    function addCell(tr, text, className) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      if (className) td.className = className;
+      tr.append(td);
+      return td;
+    }
+
+    function makeButton(text, className, onClick) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = className;
+      btn.textContent = text;
+      btn.addEventListener("click", onClick);
+      return btn;
+    }
+
+    // ---------- Loading ----------
+    async function loadUser() {
+      const me = await api("/auth/me");
+      document.getElementById("greeting").textContent = `Hi, ${me.full_name}`;
+    }
+
+    async function loadAssignments() {
+      assignments = await api("/assignments?limit=100"); // already sorted by due_date
+      render();
+    }
+
+    // ---------- Create ----------
+    addForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showMessage(message, "");
+      const button = addForm.querySelector("button");
+      button.disabled = true;
+      try {
+        const created = await api("/assignments", {
+          method: "POST",
+          json: {
+            title: addForm.elements.title.value.trim(),
+            subject: addForm.elements.subject.value.trim(),
+            due_date: addForm.elements.due_date.value, // date inputs already give "YYYY-MM-DD"
+            notes: addForm.elements.notes.value.trim() || null,
+          },
+        });
+        assignments.push(created);
+        sortByDueDate();
+        addForm.reset();
+        render();
+      } catch (err) {
+        showMessage(message, err.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    // ---------- Update status ----------
+    async function changeStatus(assignment, select) {
+      showMessage(message, "");
+      try {
+        const updated = await api(`/assignments/${assignment.id}`, {
+          method: "PATCH",
+          json: { status: select.value },
+        });
+        Object.assign(assignment, updated);
+      } catch (err) {
+        showMessage(message, err.message);
+      }
+      render(); // on failure this also puts the dropdown back to the old value
+    }
+
+    // ---------- Edit ----------
+    function openEdit(assignment) {
+      editingId = assignment.id;
+      editForm.elements.title.value = assignment.title;
+      editForm.elements.subject.value = assignment.subject;
+      editForm.elements.due_date.value = assignment.due_date;
+      editForm.elements.notes.value = assignment.notes || "";
+      showMessage(editMessage, "");
+      editDialog.showModal();
+    }
+
+    document.getElementById("edit-cancel").addEventListener("click", () => editDialog.close());
+
+    editForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = editForm.querySelector("button[type=submit]");
+      button.disabled = true;
+      try {
+        const updated = await api(`/assignments/${editingId}`, {
+          method: "PATCH",
+          json: {
+            title: editForm.elements.title.value.trim(),
+            subject: editForm.elements.subject.value.trim(),
+            due_date: editForm.elements.due_date.value,
+            notes: editForm.elements.notes.value.trim() || null,
+          },
+        });
+        const index = assignments.findIndex((a) => a.id === editingId);
+        assignments[index] = updated;
+        sortByDueDate();
+        editDialog.close();
+        render();
+      } catch (err) {
+        showMessage(editMessage, err.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    // ---------- Delete ----------
+    async function deleteAssignment(assignment) {
+      if (!confirm(`Delete "${assignment.title}"? This can't be undone.`)) return;
+      showMessage(message, "");
+      try {
+        await api(`/assignments/${assignment.id}`, { method: "DELETE" });
+        assignments = assignments.filter((a) => a.id !== assignment.id);
+        render();
+      } catch (err) {
+        showMessage(message, err.message);
+      }
+    }
+
+    // ---------- Filters ----------
+    document.getElementById("filters").addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-filter]");
+      if (!btn) return;
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll(".filter").forEach((b) => b.classList.toggle("active", b === btn));
+      render();
+    });
+
+    document.getElementById("logout").addEventListener("click", logout);
+
+    // ---------- Start ----------
+    Promise.all([loadUser(), loadAssignments()]).catch((err) => showMessage(message, err.message));
+  </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+/* ---------- Theme: change these to restyle the whole app ---------- */
+:root {
+  --accent: #4f46e5;
+  --accent-dark: #4338ca;
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --danger: #dc2626;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+h1, h2 { margin: 0 0 0.75rem; line-height: 1.2; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.1rem; }
+small { color: var(--muted); font-weight: normal; }
+a { color: var(--accent); }
+
+/* ---------- Forms ---------- */
+label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.9rem; }
+
+input, select, textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-weight: normal;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+.btn.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent-dark); }
+.btn.danger { color: var(--danger); }
+.btn.small { padding: 0.25rem 0.6rem; font-size: 0.85rem; }
+.btn.full { width: 100%; }
+
+/* ---------- Messages ---------- */
+.message {
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  white-space: pre-line; /* keeps one validation error per line */
+}
+.message.error { color: #991b1b; background: #fee2e2; }
+.message.success { color: #166534; background: #dcfce7; }
+
+/* ---------- Login / signup card ---------- */
+body.centered { display: grid; place-items: center; min-height: 100vh; padding: 1rem; }
+.card {
+  width: 100%;
+  max-width: 380px;
+  padding: 2rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+.subtitle { margin: -0.4rem 0 1.5rem; color: var(--muted); }
+.switch { margin: 1.25rem 0 0; text-align: center; font-size: 0.9rem; color: var(--muted); }
+
+/* ---------- Home page ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.topbar strong { color: var(--accent); }
+.topbar-right { display: flex; align-items: center; gap: 1rem; }
+
+.container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; }
+.container > .message { margin-bottom: 1rem; }
+
+.panel {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0 1rem;
+  align-items: end;
+}
+.grid-form .wide { grid-column: span 2; }
+.grid-form button { margin-bottom: 0.9rem; }
+
+.list-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; }
+.filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+.btn.filter { padding: 0.3rem 0.8rem; font-size: 0.85rem; border-radius: 999px; }
+.btn.filter.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+/* ---------- Table ---------- */
+.table-wrap { overflow-x: auto; } /* lets the table scroll sideways on phones */
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th, td { padding: 0.6rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+td.title { font-weight: 600; }
+td.notes { max-width: 220px; color: var(--muted); overflow-wrap: anywhere; }
+td select { width: auto; margin: 0; padding: 0.3rem 0.5rem; }
+td.actions { white-space: nowrap; text-align: right; }
+td.actions .btn + .btn { margin-left: 0.3rem; }
+
+tr.is-overdue { background: #fef2f2; }
+tr.is-overdue td:first-child { box-shadow: inset 3px 0 var(--danger); }
+.badge {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--danger);
+  border-radius: 999px;
+}
+tr.is-done td { color: var(--muted); }
+tr.is-done td.title { text-decoration: line-through; }
+
+.empty { margin: 1rem 0 0; padding: 2rem; text-align: center; color: var(--muted); }
+
+/* ---------- Edit dialog ---------- */
+dialog {
+  width: min(440px, 92vw);
+  padding: 1.5rem;
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+dialog::backdrop { background: rgba(17, 24, 39, 0.4); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+
+/* ---------- Small screens ---------- */
+@media (max-width: 600px) {
+  .grid-form .wide { grid-column: auto; }
+  .topbar { padding: 0.75rem 1rem; }
+  .topbar-right { gap: 0.5rem; font-size: 0.85rem; }
+}

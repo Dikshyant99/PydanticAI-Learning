@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign up · Assignment Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="api.js"></script>
+  <script>redirectIfLoggedIn();</script>
+</head>
+<body class="centered">
+  <main class="card">
+    <h1>Create an account</h1>
+    <p class="subtitle">Start tracking your assignments</p>
+
+    <form id="signup-form">
+      <label>Full name
+        <input type="text" name="full_name" required maxlength="100" autocomplete="name">
+      </label>
+      <label>Email
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <label>Password <small>(8–72 characters)</small>
+        <input type="password" name="password" required minlength="8" maxlength="72" autocomplete="new-password">
+      </label>
+      <p id="message" class="message" hidden role="alert"></p>
+      <button type="submit" class="btn primary full">Sign up</button>
+    </form>
+
+    <p class="switch">Already have an account? <a href="index.html">Log in</a></p>
+  </main>
+
+  <script>
+    const form = document.getElementById("signup-form");
+    const message = document.getElementById("message");
+    const button = form.querySelector("button");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showMessage(message, "");
+      button.disabled = true;
+      button.textContent = "Creating account…";
+
+      const email = form.email.value.trim();
+      const password = form.password.value;
+
+      try {
+        // 1) create the user (JSON body)
+        await api("/auth/signup", {
+          method: "POST",
+          json: { email, full_name: form.full_name.value.trim(), password },
+        });
+        // 2) log in with the same details, which stores the token
+        await login(email, password);
+        location.replace(HOME_PAGE);
+      } catch (err) {
+        showMessage(message, err.message);
+        button.disabled = false;
+        button.textContent = "Sign up";
+      }
+    });
+  </script>
+</body>
+</html>
